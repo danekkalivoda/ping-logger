@@ -1,0 +1,121 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+@layer theme {
+  :root {
+    --primary: 110 231 183;
+    --primary-foreground: 4 47 36;
+    --card: 250 253 252;
+    --secondary: 228 237 234;
+    --secondary-foreground: 16 28 30;
+    --background: 240 247 245;
+    --popover: 252 254 253;
+    --popover-foreground: 16 28 30;
+    --muted: 225 234 231;
+    --muted-foreground: 96 116 116;
+    --destructive: 181 67 34;
+    --foreground: 16 28 30;
+    --border: 210 222 219;
+    --input: 219 230 227;
+    --ring: 5 150 105;
+    --accent: 52 211 153;
+    --accent-foreground: 4 47 36;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: 110 231 183;
+      --primary-foreground: 4 47 36;
+      --card: 21 32 36;
+      --secondary: 30 44 48;
+      --secondary-foreground: 228 239 236;
+      --background: 11 19 21;
+      --popover: 17 26 29;
+      --popover-foreground: 228 239 236;
+      --muted: 26 38 42;
+      --muted-foreground: 127 151 155;
+      --destructive: 237 120 80;
+      --foreground: 228 239 236;
+      --border: 48 64 68;
+      --input: 42 58 62;
+      --accent: 52 211 153;
+      --accent-foreground: 4 47 36;
+      --ring: 5 150 105;
+    }
+  }
+
+  :root.dark {
+    --primary: 110 231 183;
+    --primary-foreground: 4 47 36;
+    --card: 21 32 36;
+    --secondary: 30 44 48;
+    --secondary-foreground: 228 239 236;
+    --background: 11 19 21;
+    --popover: 17 26 29;
+    --popover-foreground: 228 239 236;
+    --muted: 26 38 42;
+    --muted-foreground: 127 151 155;
+    --destructive: 237 120 80;
+    --foreground: 228 239 236;
+    --border: 48 64 68;
+    --input: 42 58 62;
+    --accent: 52 211 153;
+    --accent-foreground: 4 47 36;
+    --ring: 5 150 105;
+  }
+
+  :root.light {
+    --primary: 110 231 183;
+    --primary-foreground: 4 47 36;
+    --card: 250 253 252;
+    --secondary: 228 237 234;
+    --secondary-foreground: 16 28 30;
+    --background: 240 247 245;
+    --popover: 252 254 253;
+    --popover-foreground: 16 28 30;
+    --muted: 225 234 231;
+    --muted-foreground: 96 116 116;
+    --destructive: 181 67 34;
+    --foreground: 16 28 30;
+    --border: 210 222 219;
+    --input: 219 230 227;
+    --ring: 5 150 105;
+    --accent: 52 211 153;
+    --accent-foreground: 4 47 36;
+  }
+}
+
+@theme {
+  --text-xs: 13px;
+  --text-sm: 15px;
+  --text-base: 18px;
+  --text-lg: 20px;
+  --text-xl: 22px;
+  --text-2xl: 26px;
+  --text-3xl: 32px;
+  --text-4xl: 38px;
+  --text-5xl: 48px;
+  --text-6xl: 60px;
+}
+
+@theme inline {
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-card: rgb(var(--card));
+  --color-secondary: rgb(var(--secondary));
+  --color-secondary-foreground: rgb(var(--secondary-foreground));
+  --color-background: rgb(var(--background));
+  --color-popover: rgb(var(--popover));
+  --color-popover-foreground: rgb(var(--popover-foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-destructive: rgb(var(--destructive));
+  --color-foreground: rgb(var(--foreground));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-ring: rgb(var(--ring));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+}

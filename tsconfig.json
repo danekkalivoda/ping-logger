@@ -1,0 +1,50 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@/assets/*": [
+        "./assets/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "components/app/**/*.ts",
+    "components/app/**/*.tsx",
+    "components/ui/alert/**/*.ts",
+    "components/ui/alert/**/*.tsx",
+    "components/ui/box/**/*.ts",
+    "components/ui/box/**/*.tsx",
+    "components/ui/card/**/*.ts",
+    "components/ui/card/**/*.tsx",
+    "components/ui/form-control/**/*.ts",
+    "components/ui/form-control/**/*.tsx",
+    "components/ui/gluestack-ui-provider/**/*.ts",
+    "components/ui/gluestack-ui-provider/**/*.tsx",
+    "components/ui/heading/**/*.ts",
+    "components/ui/heading/**/*.tsx",
+    "components/ui/hstack/**/*.ts",
+    "components/ui/hstack/**/*.tsx",
+    "components/ui/input/**/*.ts",
+    "components/ui/input/**/*.tsx",
+    "components/ui/pressable/**/*.ts",
+    "components/ui/pressable/**/*.tsx",
+    "components/ui/scroll-view/**/*.ts",
+    "components/ui/scroll-view/**/*.tsx",
+    "components/ui/text/**/*.ts",
+    "components/ui/text/**/*.tsx",
+    "components/ui/vstack/**/*.ts",
+    "components/ui/vstack/**/*.tsx",
+    "lib/**/*.ts",
+    "store/**/*.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts",
+    "react-native-css-env.d.ts"
+  ]
+}
