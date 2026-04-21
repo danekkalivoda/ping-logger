@@ -6,6 +6,10 @@ import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import { LogBox, useColorScheme } from 'react-native';
 
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import { useSessionStore } from '@/store/session';
+import '@/src/global.css';
+
 if (__DEV__) {
   LogBox.ignoreLogs([
     /ExpoKeepAwake\.activate/,
@@ -13,10 +17,6 @@ if (__DEV__) {
     /current activity is no longer available/,
   ]);
 }
-
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
-import { useSessionStore } from '@/store/session';
-import '@/src/global.css';
 
 const THEME = {
   light: {

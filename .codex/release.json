@@ -1,0 +1,19 @@
+{
+  "defaultTarget": "android-apk",
+  "artifactDir": "dist/releases",
+  "displayName": "Ping Logger",
+  "warnOnPlaceholderId": true,
+  "placeholderIds": [
+    "com.anonymous.pinglogger"
+  ],
+  "android": {
+    "applicationId": "com.anonymous.pinglogger",
+    "gradleFile": "android/app/build.gradle"
+  },
+  "ios": {
+    "bundleIdentifier": "com.anonymous.pinglogger",
+    "workspace": "ios/PingLogger.xcworkspace",
+    "scheme": "PingLogger",
+    "productName": "PingLogger"
+  }
+}

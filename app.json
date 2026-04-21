@@ -8,7 +8,8 @@
     "scheme": "pinglogger",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.anonymous.pinglogger"
+      "bundleIdentifier": "com.anonymous.pinglogger",
+      "buildNumber": "1"
     },
     "android": {
       "permissions": [
@@ -25,7 +26,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.pinglogger"
+      "package": "com.anonymous.pinglogger",
+      "versionCode": 1
     },
     "web": {
       "output": "static",

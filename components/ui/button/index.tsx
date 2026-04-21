@@ -123,6 +123,17 @@ const buttonGroupStyle = tva({
     },
   },
 });
+
+function normalizeButtonSize(
+  size: 'default' | 'sm' | 'lg' | 'xl' | 'icon' | undefined,
+) {
+  if (size === 'sm' || size === 'lg' || size === 'icon') {
+    return size;
+  }
+
+  return size === 'xl' ? 'lg' : 'default';
+}
+
 type IButtonProps = Omit<
   React.ComponentPropsWithoutRef<typeof UIButton>,
   'context'
@@ -154,7 +165,7 @@ const ButtonText = React.forwardRef<
       {...props}
       className={buttonTextStyle({
         parentVariants: {
-          size: parentSize,
+          size: normalizeButtonSize(parentSize),
           variant: parentVariant,
         },
         size,
@@ -166,9 +177,20 @@ const ButtonText = React.forwardRef<
 const ButtonSpinner = React.forwardRef<
   React.ElementRef<typeof UIButton.Spinner>,
   React.ComponentPropsWithoutRef<typeof UIButton.Spinner>
->(({ className, size, ...props }, ref) => {
+>(({ className, size: indicatorSize, ...props }, ref) => {
   const { size: parentSize } = useStyleContext(SCOPE);
-  return <UIButton.Spinner ref={ref} {...props} className={buttonSpinnerStyle({ parentVariants: { size: parentSize }, class: className, size })} />;
+
+  return (
+    <UIButton.Spinner
+      ref={ref}
+      {...props}
+      size={indicatorSize}
+      className={buttonSpinnerStyle({
+        parentVariants: { size: normalizeButtonSize(parentSize) },
+        class: className,
+      })}
+    />
+  );
 });
 type IButtonIcon = React.ComponentPropsWithoutRef<typeof UIButton.Icon> &
   VariantProps<typeof buttonIconStyle> & {
@@ -208,7 +230,7 @@ const ButtonIcon = React.forwardRef<
       {...props}
       className={buttonIconStyle({
         parentVariants: {
-          size: parentSize,
+          size: normalizeButtonSize(parentSize),
           variant: parentVariant,
         },
         size,

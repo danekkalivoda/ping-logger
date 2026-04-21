@@ -175,7 +175,7 @@ export async function startSessionLifecycle({
     start: startedAt.toISOString(),
     interval_ms: intervalMs,
     device: Device.modelName ?? 'Unknown device',
-    app_version: Constants.expoConfig?.version ?? '0.1.0',
+    app_version: Constants.expoConfig?.version ?? 'unknown',
   };
   const serializedHeader = serializeLine(header);
 
@@ -307,4 +307,3 @@ export async function loadSessionHistory() {
 export async function clearSessionHistory() {
   deleteAllSessionFiles();
 }
-
