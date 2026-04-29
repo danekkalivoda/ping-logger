@@ -37,6 +37,7 @@
       "expo-router",
       "./plugins/with-notifee-android-maven",
       "./plugins/with-notifee-foreground-service",
+      "./plugins/with-public-export-module",
       [
         "expo-splash-screen",
         {

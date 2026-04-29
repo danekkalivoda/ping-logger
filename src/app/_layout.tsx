@@ -4,11 +4,12 @@ import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
-import { LogBox, useColorScheme } from 'react-native';
+import { LogBox, Text, useColorScheme } from 'react-native';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
-import { useSessionStore } from '@/store/session';
 import '@/src/global.css';
+import { usePreferencesStore } from '@/store/preferences';
+import { useSessionStore } from '@/store/session';
 
 if (__DEV__) {
   LogBox.ignoreLogs([
@@ -38,10 +39,17 @@ const THEME = {
 } as const;
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const mode = colorScheme === 'dark' ? 'dark' : 'light';
+  const systemScheme = useColorScheme();
+  const themeMode = usePreferencesStore((state) => state.themeMode);
+  const loadThemeMode = usePreferencesStore((state) => state.loadThemeMode);
+  const effectiveScheme = themeMode === 'auto' ? systemScheme : themeMode;
+  const mode = effectiveScheme === 'dark' ? 'dark' : 'light';
   const theme = THEME[mode];
   const bootstrap = useSessionStore((state) => state.bootstrap);
+
+  useEffect(() => {
+    loadThemeMode();
+  }, [loadThemeMode]);
 
   useEffect(() => {
     void bootstrap();
@@ -62,7 +70,31 @@ export default function RootLayout() {
         />
         <Tabs
           screenOptions={{
-            headerShown: false,
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: theme.card,
+              borderBottomColor: theme.border,
+              borderBottomWidth: 1,
+              elevation: 0,
+              shadowOpacity: 0,
+            },
+            headerShadowVisible: false,
+            headerTitleAlign: 'left',
+            headerTintColor: theme.foreground,
+            headerTitle: ({ children }) => (
+              <Text
+                style={{
+                  color: theme.foreground,
+                  fontSize: 20,
+                  fontWeight: '700',
+                  letterSpacing: 1.5,
+                  textTransform: 'uppercase',
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {children}
+              </Text>
+            ),
             sceneStyle: { backgroundColor: theme.background },
             tabBarStyle: {
               backgroundColor: theme.card,
@@ -72,7 +104,7 @@ export default function RootLayout() {
             },
             tabBarActiveTintColor: theme.primary,
             tabBarInactiveTintColor: theme.muted,
-            tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
+            tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
           }}
         >
           <Tabs.Screen
@@ -99,6 +131,15 @@ export default function RootLayout() {
               title: 'History',
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="list-outline" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="settings"
+            options={{
+              title: 'Settings',
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="settings-outline" size={size} color={color} />
               ),
             }}
           />

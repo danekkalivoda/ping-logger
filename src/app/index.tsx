@@ -16,6 +16,7 @@ import { ScrollView } from '@/components/ui/scroll-view';
 import { Text } from '@/components/ui/text';
 import { Toast, ToastTitle, useToast } from '@/components/ui/toast';
 import { VStack } from '@/components/ui/vstack';
+import { useIconColors } from '@/lib/theme-colors';
 import { useSessionStore } from '@/store/session';
 
 export default function SessionScreen() {
@@ -37,6 +38,7 @@ export default function SessionScreen() {
   const toast = useToast();
   const lastToastAt = useRef<number | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const iconColors = useIconColors();
 
   useEffect(() => {
     if (sessionSavedAt && sessionSavedAt !== lastToastAt.current) {
@@ -72,13 +74,13 @@ export default function SessionScreen() {
   }, [infoMessage, toast]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={[]}>
       <ScrollView className="flex-1 bg-background">
-        <VStack className="px-5 pb-12 pt-4" space="md">
+        <VStack className="px-5 pb-12 pt-6" space="md">
           <HStack
             className={`rounded-md border overflow-hidden ${
               isRunning
-                ? 'bg-emerald-900 border-emerald-800'
+                ? 'bg-emerald-100 border-emerald-200 dark:bg-emerald-900 dark:border-emerald-800'
                 : 'bg-card/60 border-border'
             }`}
           >
@@ -110,7 +112,7 @@ export default function SessionScreen() {
 
             <HStack space="sm" className="items-center">
               <Box className="flex-1">
-                <Input className="min-h-12 rounded-md border-border bg-background">
+                <Input className="min-h-12 rounded-md border-border bg-card">
                   <InputField
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -131,7 +133,7 @@ export default function SessionScreen() {
                 <Ionicons
                   name="settings-outline"
                   size={16}
-                  color={advancedOpen ? '#FFFFFF' : 'rgb(127,151,155)'}
+                  color={advancedOpen ? iconColors.foreground : iconColors.mutedForeground}
                 />
               </Button>
             </HStack>
@@ -148,7 +150,7 @@ export default function SessionScreen() {
                       Interval ms
                     </Text>
                     <Box className="flex-1">
-                      <Input className="min-h-12 rounded-md border-border bg-background mb-3">
+                      <Input className="min-h-12 rounded-md border-border bg-card mb-3">
                         <InputField
                           keyboardType="number-pad"
                           placeholder="1000"
@@ -195,10 +197,14 @@ function Tile({
   const divider = first
     ? ''
     : running
-      ? 'border-l border-emerald-800'
+      ? 'border-l border-emerald-200 dark:border-emerald-800'
       : 'border-l border-border';
-  const labelClass = running ? 'text-emerald-300' : 'text-muted-foreground';
-  const valueClass = running ? 'text-emerald-50' : 'text-foreground';
+  const labelClass = running
+    ? 'text-emerald-700 dark:text-emerald-300'
+    : 'text-muted-foreground';
+  const valueClass = running
+    ? 'text-emerald-950 dark:text-emerald-50'
+    : 'text-foreground';
 
   return (
     <Box className={`min-w-0 flex-1 py-3 px-4 ${divider}`}>

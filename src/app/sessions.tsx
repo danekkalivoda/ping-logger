@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert as RNAlert, useColorScheme } from 'react-native';
+import { Alert as RNAlert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -19,9 +19,15 @@ import { Heading } from '@/components/ui/heading';
 import { HStack } from '@/components/ui/hstack';
 import { ScrollView } from '@/components/ui/scroll-view';
 import { Text } from '@/components/ui/text';
+import { Toast, ToastTitle, useToast } from '@/components/ui/toast';
 import { VStack } from '@/components/ui/vstack';
+import {
+  exportSessionFileToPublicDirectory,
+  getPublicExportDirectoryLabel,
+} from '@/lib/downloads-export';
 import type { SessionPreview } from '@/lib/session-types';
 import { clearSessionHistory, loadSessionHistory } from '@/lib/sessions';
+import { useIconColors } from '@/lib/theme-colors';
 import { useSessionStore } from '@/store/session';
 
 function pad(v: number) {
@@ -51,9 +57,14 @@ export default function SessionsScreen() {
   const [sessions, setSessions] = useState<SessionPreview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const colorScheme = useColorScheme();
-  const shareIconColor = colorScheme === 'dark' ? '#FFFFFF' : '#000000';
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
+  const [exportDirectoryLabel, setExportDirectoryLabel] = useState(() =>
+    getPublicExportDirectoryLabel(),
+  );
+  const iconColors = useIconColors();
   const isFocused = useIsFocused();
+  const toast = useToast();
 
   const liveSessionId = useSessionStore((s) => s.sessionId);
   const liveIsRunning = useSessionStore((s) => s.isRunning);
@@ -68,6 +79,7 @@ export default function SessionsScreen() {
     try {
       const next = await loadSessionHistory();
       setSessions(next);
+      setExportDirectoryLabel(getPublicExportDirectoryLabel());
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
@@ -89,6 +101,24 @@ export default function SessionsScreen() {
       void load();
     }
   }, [liveIsRunning, load]);
+
+  useEffect(() => {
+    if (!infoMessage) return;
+
+    const id = `sessions-info-${Date.now()}`;
+    toast.show({
+      id,
+      placement: 'top',
+      duration: 3500,
+      render: () => (
+        <Toast nativeID={id} variant="solid">
+          <ToastTitle className="text-foreground">{infoMessage}</ToastTitle>
+        </Toast>
+      ),
+    });
+
+    setInfoMessage(null);
+  }, [infoMessage, toast]);
 
   const [nowTick, setNowTick] = useState(0);
   useEffect(() => {
@@ -130,6 +160,41 @@ export default function SessionsScreen() {
     liveAvgLatency,
     nowTick,
   ]);
+
+  async function handleExport(session: SessionPreview) {
+    setExportingId(session.id);
+    setErrorMessage(null);
+    setInfoMessage(null);
+
+    try {
+      const outcome = await exportSessionFileToPublicDirectory({
+        internalFileUri: session.fileUri,
+        fileName: session.fileName,
+      });
+
+      if (outcome.exported) {
+        setInfoMessage(`Exported to ${outcome.relativePath}.`);
+        return;
+      }
+
+      if (outcome.reason === 'unsupported') {
+        setErrorMessage('Public folder export is only available on Android.');
+        return;
+      }
+
+      setErrorMessage(
+        outcome.error
+          ? `Failed to export: ${outcome.error}`
+          : 'Failed to export the session.',
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Failed to export the session.',
+      );
+    } finally {
+      setExportingId(null);
+    }
+  }
 
   async function handleShare(session: SessionPreview) {
     try {
@@ -176,10 +241,10 @@ export default function SessionsScreen() {
   const hasSessions = merged.length > 0;
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={[]}>
       <ScrollView className="flex-1 bg-background">
         {errorMessage ? (
-          <Box className="px-5 pt-4">
+          <Box className="px-5 pt-6">
             <Alert variant="destructive" className="rounded-md">
               <AlertText>{errorMessage}</AlertText>
             </Alert>
@@ -187,7 +252,7 @@ export default function SessionsScreen() {
         ) : null}
 
         {isLoading && sessions.length === 0 ? (
-          <Box className="px-5 pt-4">
+          <Box className="px-5 pt-6">
             <Text className="text-sm text-muted-foreground">Loading session files...</Text>
           </Box>
         ) : null}
@@ -251,7 +316,7 @@ export default function SessionsScreen() {
                           <Ionicons
                             name={isExpanded ? 'chevron-up' : 'chevron-down'}
                             size={16}
-                            color="rgb(127,151,155)"
+                            color={iconColors.mutedForeground}
                           />
                         </>
                       )}
@@ -271,16 +336,27 @@ export default function SessionsScreen() {
                           value={`${session.avgLatencyMs}ms`}
                         />
                         <DetailTile label="Errors" value={String(session.errorCount)} />
-                        <Button
-                          variant="outline"
-                          onPress={() => handleShare(session)}
-                          isDisabled={isLive}
-                          accessibilityLabel="Share session file"
-                        >
-                          <Ionicons name="share-outline" size={16} color={shareIconColor} />
-                          <ButtonText>Share file</ButtonText>
-                        </Button>
                       </HStack>
+                      <Button
+                        variant="outline"
+                        onPress={() => handleShare(session)}
+                        isDisabled={isLive}
+                        accessibilityLabel="Share session file"
+                      >
+                        <Ionicons name="share-outline" size={16} color={iconColors.foreground} />
+                        <ButtonText>Share file</ButtonText>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onPress={() => handleExport(session)}
+                        isDisabled={isLive || exportingId === session.id}
+                        accessibilityLabel="Export session file to Downloads"
+                      >
+                        <Ionicons name="download-outline" size={16} color={iconColors.foreground} />
+                        <ButtonText>
+                          {exportingId === session.id ? 'Exporting…' : 'Export'}
+                        </ButtonText>
+                      </Button>
                     </VStack>
                   </AccordionContent>
                 </AccordionItem>
@@ -297,7 +373,7 @@ export default function SessionsScreen() {
               accessibilityLabel="Delete all sessions"
               className="border-destructive/40"
             >
-              <Ionicons name="trash-outline" size={16} color="rgb(181,67,34)" />
+              <Ionicons name="trash-outline" size={16} color={iconColors.destructive} />
               <ButtonText className="text-destructive">Delete all history</ButtonText>
             </Button>
           </Box>

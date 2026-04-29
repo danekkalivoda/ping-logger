@@ -10,7 +10,7 @@ export default function LogScreen() {
   const isRunning = useSessionStore((state) => state.isRunning);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={[]}>
       <Box className="flex-1 bg-background">
         {isRunning ? (
           <LogView lines={logLines} />
