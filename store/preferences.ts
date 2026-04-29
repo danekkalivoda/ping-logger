@@ -1,5 +1,5 @@
 import { Directory, File, Paths } from 'expo-file-system';
-import { Appearance, type ColorSchemeName } from 'react-native';
+import { Appearance } from 'react-native';
 import { create } from 'zustand';
 
 const APP_DIRECTORY_NAME = 'PingLogger';
@@ -47,9 +47,10 @@ type PreferencesState = {
 };
 
 function applyColorScheme(mode: ThemeMode) {
-  // `null` means "follow system"; the RN types don't widen the setter param
-  // in this version, but the runtime accepts null per the API docs.
-  Appearance.setColorScheme((mode === 'auto' ? null : mode) as ColorSchemeName);
+  // RN 0.83's native AppearanceModule declares a non-null String; passing null
+  // crashes release builds. "unspecified" resets to MODE_NIGHT_FOLLOW_SYSTEM.
+  const value = mode === 'auto' ? 'unspecified' : mode;
+  (Appearance.setColorScheme as (scheme: string) => void)(value);
 }
 
 export const usePreferencesStore = create<PreferencesState>((set) => ({

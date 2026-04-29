@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import type { ListRenderItem, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { FlatList } from 'react-native';
 
@@ -8,18 +8,16 @@ import { Button, ButtonText } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 
 const NEAR_BOTTOM_PX = 24;
+const ROW_GAP = 8;
+const LIST_VERTICAL_PADDING = 12;
 
 const LineRow = memo(function LineRow({ line }: { line: string }) {
-  return (
-    <Text className="font-mono text-[12px] leading-5 text-foreground">
-      {line}
-    </Text>
-  );
+  return <Text className="font-mono text-[12px] leading-5 text-foreground">{line}</Text>;
 });
 
 const renderLine: ListRenderItem<string> = ({ item }) => <LineRow line={item} />;
-
-const keyExtractor = (item: string) => item;
+const renderSeparator = () => <Box style={{ height: ROW_GAP }} />;
+const keyExtractor = (_item: string, index: number) => String(index);
 
 export function LogView({ lines }: { lines: string[] }) {
   const listRef = useRef<FlatList<string>>(null);
@@ -33,11 +31,17 @@ export function LogView({ lines }: { lines: string[] }) {
     setShowJump(!next);
   }, []);
 
-  const handleContentSizeChange = useCallback(() => {
-    if (autoFollowRef.current) {
-      listRef.current?.scrollToEnd({ animated: false });
+  useEffect(() => {
+    if (!autoFollowRef.current || lines.length === 0) {
+      return;
     }
-  }, []);
+
+    const frame = requestAnimationFrame(() => {
+      listRef.current?.scrollToEnd({ animated: false });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [lines.length]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -63,11 +67,16 @@ export function LogView({ lines }: { lines: string[] }) {
         data={lines}
         renderItem={renderLine}
         keyExtractor={keyExtractor}
-        contentContainerClassName="px-4 py-3 gap-2"
+        ItemSeparatorComponent={renderSeparator}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingVertical: LIST_VERTICAL_PADDING,
+        }}
         initialNumToRender={15}
         maxToRenderPerBatch={10}
-        windowSize={3}
-        onContentSizeChange={handleContentSizeChange}
+        updateCellsBatchingPeriod={16}
+        windowSize={5}
+        removeClippedSubviews
         onScroll={handleScroll}
         onScrollBeginDrag={() => {
           isUserScrolling.current = true;

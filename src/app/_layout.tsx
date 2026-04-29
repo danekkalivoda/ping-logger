@@ -126,6 +126,15 @@ export default function RootLayout() {
             }}
           />
           <Tabs.Screen
+            name="wifi"
+            options={{
+              title: 'Wi-Fi',
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="wifi-outline" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
             name="sessions"
             options={{
               title: 'History',
