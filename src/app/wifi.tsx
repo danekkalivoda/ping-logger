@@ -2,12 +2,11 @@ import NetInfo, { useNetInfo } from '@react-native-community/netinfo';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AppState, type DimensionValue } from 'react-native';
+import { AppState, type DimensionValue, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Alert, AlertText } from '@/components/ui/alert';
 import { Box } from '@/components/ui/box';
-import { Button } from '@/components/ui/button';
 import { HStack } from '@/components/ui/hstack';
 import { ScrollView } from '@/components/ui/scroll-view';
 import { Text } from '@/components/ui/text';
@@ -18,7 +17,6 @@ import {
   formatReachability,
   formatSignal,
   normalizeNetworkStatus,
-  type NetworkStatusKind,
   type NetworkStatusView,
 } from '@/lib/network-status';
 import { useIconColors } from '@/lib/theme-colors';
@@ -33,7 +31,6 @@ export default function WifiScreen() {
   const [status, setStatus] = useState<NetworkStatusView>(() =>
     normalizeNetworkStatus(netInfo),
   );
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const iconColors = useIconColors();
@@ -45,7 +42,6 @@ export default function WifiScreen() {
     try {
       const next = await NetInfo.refresh();
       setStatus(normalizeNetworkStatus(next));
-      setLastRefreshedAt(new Date());
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'Failed to refresh network state.',
@@ -57,7 +53,6 @@ export default function WifiScreen() {
 
   useEffect(() => {
     setStatus(normalizeNetworkStatus(netInfo));
-    setLastRefreshedAt(new Date());
   }, [netInfo]);
 
   useFocusEffect(
@@ -147,13 +142,6 @@ export default function WifiScreen() {
     [status],
   );
 
-  const statusClass = getStatusClass(status.kind);
-  const statusValueClass = getStatusValueClass(status.kind);
-  const iconName = getStatusIcon(status.kind);
-  const lastRefreshedLabel = lastRefreshedAt
-    ? formatClock(lastRefreshedAt)
-    : 'Pending';
-
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={[]}>
       <ScrollView className="flex-1 bg-background">
@@ -164,46 +152,6 @@ export default function WifiScreen() {
             </Alert>
           ) : null}
 
-          <Box className={`rounded-md border px-4 py-4 ${statusClass}`}>
-            <HStack className="items-center justify-between" space="md">
-              <HStack className="min-w-0 flex-1 items-center" space="md">
-                <Box className="h-11 w-11 items-center justify-center rounded-md bg-background/70">
-                  <Ionicons
-                    name={iconName}
-                    size={22}
-                    color={status.kind === 'offline' ? iconColors.destructive : iconColors.foreground}
-                  />
-                </Box>
-                <VStack className="min-w-0 flex-1" space="xs">
-                  <Text
-                    className={`text-xl font-semibold ${statusValueClass}`}
-                    numberOfLines={1}
-                  >
-                    {status.title}
-                  </Text>
-                  <Text className="text-sm text-muted-foreground" numberOfLines={2}>
-                    {status.subtitle}
-                  </Text>
-                </VStack>
-              </HStack>
-
-              <Button
-                size="icon"
-                variant="secondary"
-                onPress={refresh}
-                isDisabled={isRefreshing}
-                accessibilityLabel="Refresh network status"
-                className="h-11 w-11"
-              >
-                <Ionicons
-                  name="refresh-outline"
-                  size={18}
-                  color={isRefreshing ? iconColors.mutedForeground : iconColors.foreground}
-                />
-              </Button>
-            </HStack>
-          </Box>
-
           <HStack className="overflow-hidden rounded-md border border-border bg-card/60">
             <Tile label="Type" value={status.title} first />
             <Tile label="Signal" value={formatSignal(status.wifiStrength)} />
@@ -211,7 +159,18 @@ export default function WifiScreen() {
               label="Internet"
               value={formatReachability(status.isInternetReachable)}
             />
-            <Tile label="Refresh" value={lastRefreshedLabel} />
+            <Pressable
+              onPress={refresh}
+              disabled={isRefreshing}
+              accessibilityLabel="Refresh network status"
+              className="min-w-0 flex-1 items-center justify-center border-l border-border px-3 py-3"
+            >
+              <Ionicons
+                name="refresh-outline"
+                size={20}
+                color={isRefreshing ? iconColors.mutedForeground : iconColors.foreground}
+              />
+            </Pressable>
           </HStack>
 
           <VStack space="sm">
@@ -308,54 +267,4 @@ function SectionLabel({ children }: { children: string }) {
       {children}
     </Text>
   );
-}
-
-function formatClock(date: Date) {
-  return date.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-}
-
-function getStatusIcon(kind: NetworkStatusKind): keyof typeof Ionicons.glyphMap {
-  switch (kind) {
-    case 'wifi':
-      return 'wifi-outline';
-    case 'cellular':
-      return 'cellular-outline';
-    case 'offline':
-      return 'cloud-offline-outline';
-    case 'ethernet':
-      return 'git-network-outline';
-    case 'vpn':
-      return 'shield-checkmark-outline';
-    case 'other':
-      return 'radio-outline';
-    case 'unknown':
-    default:
-      return 'help-circle-outline';
-  }
-}
-
-function getStatusClass(kind: NetworkStatusKind) {
-  switch (kind) {
-    case 'wifi':
-      return 'border-emerald-200 bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900';
-    case 'offline':
-      return 'border-destructive/40 bg-destructive/10';
-    default:
-      return 'border-border bg-card/60';
-  }
-}
-
-function getStatusValueClass(kind: NetworkStatusKind) {
-  switch (kind) {
-    case 'wifi':
-      return 'text-emerald-950 dark:text-emerald-50';
-    case 'offline':
-      return 'text-destructive';
-    default:
-      return 'text-foreground';
-  }
 }
