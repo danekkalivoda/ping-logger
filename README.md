@@ -26,6 +26,24 @@ bunx expo prebuild
 bunx expo run:android
 ```
 
+## Supabase sync
+
+Run the table/RLS setup in your Supabase SQL Editor:
+
+```bash
+supabase/ping_sessions.sql
+```
+
+Create `.env.local` with the values from Supabase Project Settings -> API:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+```
+
+The mobile app uses the publishable key only. Row Level Security is configured
+for insert-only session uploads; do not put a service role key in the app.
+
 ## Release
 
 Default distributable artifact for this project is an Android APK:

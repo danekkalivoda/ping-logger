@@ -13,6 +13,12 @@ import { Text } from '@/components/ui/text';
 import { Toast, ToastTitle, useToast } from '@/components/ui/toast';
 import { VStack } from '@/components/ui/vstack';
 import {
+  formatDeviceLabel,
+  getDeviceIdentity,
+  saveDeviceName,
+  type DeviceIdentity,
+} from '@/lib/device-identity';
+import {
   getPublicExportDirectoryLabel,
   getPublicExportSettings,
   savePublicExportSettings,
@@ -26,6 +32,10 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState<PublicExportSettings>(() =>
     getPublicExportSettings(),
   );
+  const [deviceIdentity, setDeviceIdentity] = useState<DeviceIdentity>(() =>
+    getDeviceIdentity(),
+  );
+  const [deviceNameInput, setDeviceNameInput] = useState(deviceIdentity.deviceName);
   const [subdirectoryInput, setSubdirectoryInput] = useState(settings.subdirectory);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const toast = useToast();
@@ -34,7 +44,10 @@ export default function SettingsScreen() {
 
   const loadSettings = useCallback(() => {
     const next = getPublicExportSettings();
+    const nextIdentity = getDeviceIdentity();
     setSettings(next);
+    setDeviceIdentity(nextIdentity);
+    setDeviceNameInput(nextIdentity.deviceName);
     setSubdirectoryInput(next.subdirectory);
   }, []);
 
@@ -81,10 +94,21 @@ export default function SettingsScreen() {
     setInfoMessage(`Export location saved: ${getPublicExportDirectoryLabel(saved)}.`);
   }
 
+  function handleSaveDeviceName() {
+    const saved = saveDeviceName(deviceNameInput);
+    setDeviceIdentity(saved);
+    setDeviceNameInput(saved.deviceName);
+    setInfoMessage(`Device label saved: ${saved.deviceLabel}.`);
+  }
+
   const destinationLabel = getPublicExportDirectoryLabel({
     rootDirectory: settings.rootDirectory,
     subdirectory: subdirectoryInput,
   });
+  const deviceLabelPreview = formatDeviceLabel(
+    deviceNameInput,
+    deviceIdentity.deviceId,
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={[]}>
@@ -114,6 +138,33 @@ export default function SettingsScreen() {
                 onPress={() => setThemeMode('dark')}
               />
             </HStack>
+          </VStack>
+
+          <VStack space="md">
+            <VStack space="xs">
+              <Text className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Device identity
+              </Text>
+              <Input className="min-h-12 rounded-md border-border bg-card">
+                <InputField
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="otter"
+                  value={deviceNameInput}
+                  onChangeText={setDeviceNameInput}
+                />
+              </Input>
+              <Text className="text-xs text-muted-foreground">
+                Cloud label: {deviceLabelPreview}
+              </Text>
+              <Text className="font-mono text-[10px] leading-4 text-muted-foreground">
+                Device key: {deviceIdentity.deviceId}
+              </Text>
+            </VStack>
+
+            <Button variant="outline" onPress={handleSaveDeviceName}>
+              <ButtonText>Save device name</ButtonText>
+            </Button>
           </VStack>
 
           {Platform.OS !== 'android' ? (

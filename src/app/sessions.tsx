@@ -23,8 +23,8 @@ import { Toast, ToastTitle, useToast } from '@/components/ui/toast';
 import { VStack } from '@/components/ui/vstack';
 import {
   exportSessionFileToPublicDirectory,
-  getPublicExportDirectoryLabel,
 } from '@/lib/downloads-export';
+import { flushPendingSessionUploads } from '@/lib/session-sync';
 import type { SessionPreview } from '@/lib/session-types';
 import { clearSessionHistory, loadSessionHistory } from '@/lib/sessions';
 import { useIconColors } from '@/lib/theme-colors';
@@ -102,9 +102,6 @@ export default function SessionsScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [exportingId, setExportingId] = useState<string | null>(null);
-  const [exportDirectoryLabel, setExportDirectoryLabel] = useState(() =>
-    getPublicExportDirectoryLabel(),
-  );
   const iconColors = useIconColors();
   const isFocused = useIsFocused();
   const toast = useToast();
@@ -122,8 +119,10 @@ export default function SessionsScreen() {
     try {
       const next = await loadSessionHistory();
       setSessions(next);
-      setExportDirectoryLabel(getPublicExportDirectoryLabel());
       setErrorMessage(null);
+      void flushPendingSessionUploads().catch(() => {
+        // retry status is shown in the global header indicator
+      });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'Failed to read saved sessions.',

@@ -17,6 +17,11 @@ import {
   startSessionLifecycle,
   stopSessionLifecycle,
 } from '@/lib/sessions';
+import {
+  flushPendingSessionUploads,
+  queueSessionUpload,
+  syncCompletedSession,
+} from '@/lib/session-sync';
 import type { SessionPingLine } from '@/lib/session-types';
 import { validatePingInputs } from '@/lib/validation';
 
@@ -93,6 +98,10 @@ export const useSessionStore = create<SessionState>((set, get) => {
         requestCount: state.requestCount,
         errorCount: state.errorCount,
         averageLatencyMs: state.averageLatencyMs,
+      });
+
+      void syncCompletedSession({ fileUri: state.sessionFileUri }).catch(() => {
+        // upload failures are reflected through the global sync status store
       });
 
       set((current) => ({
@@ -189,6 +198,14 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
       try {
         const closed = await finalizeIncompleteSessions();
+
+        for (const session of closed) {
+          queueSessionUpload({ fileUri: session.fileUri });
+        }
+
+        void flushPendingSessionUploads().catch(() => {
+          // retry state is tracked globally and should not block startup
+        });
 
         if (closed.length > 0) {
           set({
@@ -346,6 +363,9 @@ export const useSessionStore = create<SessionState>((set, get) => {
               errorCount: 0,
               averageLatencyMs: 0,
               abnormalTermination: true,
+            });
+            void syncCompletedSession({ fileUri: createdSession.fileUri }).catch(() => {
+              // upload failures are reflected through the global sync status store
             });
             fallbackLogLines = [
               createdSession.serializedHeader,

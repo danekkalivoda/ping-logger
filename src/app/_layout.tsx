@@ -4,12 +4,13 @@ import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
-import { LogBox, Text, useColorScheme } from 'react-native';
+import { ActivityIndicator, LogBox, Text, View, useColorScheme } from 'react-native';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/src/global.css';
 import { usePreferencesStore } from '@/store/preferences';
 import { useSessionStore } from '@/store/session';
+import { useSessionUploadStatusStore } from '@/store/session-upload-status';
 
 if (__DEV__) {
   LogBox.ignoreLogs([
@@ -95,6 +96,7 @@ export default function RootLayout() {
                 {children}
               </Text>
             ),
+            headerRight: () => <SyncHeaderIndicator theme={theme} />,
             sceneStyle: { backgroundColor: theme.background },
             tabBarStyle: {
               backgroundColor: theme.card,
@@ -155,5 +157,59 @@ export default function RootLayout() {
         </Tabs>
       </ThemeProvider>
     </GluestackUIProvider>
+  );
+}
+
+function SyncHeaderIndicator({ theme }: { theme: (typeof THEME)[keyof typeof THEME] }) {
+  const status = useSessionUploadStatusStore((state) => state.status);
+  const pendingCount = useSessionUploadStatusStore((state) => state.pendingCount);
+
+  if (status === 'idle' && pendingCount === 0) {
+    return <View style={{ width: 44 }} />;
+  }
+
+  const isSyncing = status === 'syncing';
+  const label = isSyncing
+    ? `Uploading sessions to Supabase. ${pendingCount} pending.`
+    : status === 'error'
+      ? `Supabase upload has ${pendingCount} pending session${pendingCount === 1 ? '' : 's'}.`
+      : `${pendingCount} session${pendingCount === 1 ? '' : 's'} waiting to upload.`;
+
+  return (
+    <View
+      accessible
+      accessibilityLabel={label}
+      style={{
+        alignItems: 'center',
+        flexDirection: 'row',
+        gap: 6,
+        justifyContent: 'center',
+        minHeight: 44,
+        minWidth: 44,
+        paddingRight: 16,
+      }}
+    >
+      {isSyncing ? (
+        <ActivityIndicator color={theme.primary} size="small" />
+      ) : (
+        <Ionicons
+          name={status === 'error' ? 'cloud-offline-outline' : 'cloud-upload-outline'}
+          size={18}
+          color={status === 'error' ? '#B54322' : theme.muted}
+        />
+      )}
+      {pendingCount > 0 ? (
+        <Text
+          style={{
+            color: status === 'error' ? '#B54322' : theme.muted,
+            fontSize: 11,
+            fontVariant: ['tabular-nums'],
+            fontWeight: '700',
+          }}
+        >
+          {pendingCount > 99 ? '99+' : pendingCount}
+        </Text>
+      ) : null}
+    </View>
   );
 }
