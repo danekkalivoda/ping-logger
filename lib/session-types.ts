@@ -1,8 +1,11 @@
+import type { NetworkStatusSnapshot } from '@/lib/network-status';
+
 export type SessionHeaderLine = {
   type: 'header';
   url: string;
   start: string;
   interval_ms: number;
+  include_network_status: boolean;
   device: string;
   app_version: string;
 };
@@ -13,6 +16,7 @@ export type SessionPingLine = {
   status: number;
   latency_ms: number;
   error?: string;
+  network?: NetworkStatusSnapshot;
 };
 
 export type SessionFooterLine = {
@@ -31,6 +35,16 @@ export type SessionFileLine =
   | SessionPingLine
   | SessionFooterLine;
 
+export type SessionNetworkSummary = {
+  sampleCount: number;
+  lastNetworkType: NetworkStatusSnapshot['type'] | null;
+  lastSsid: string | null;
+  lastWifiStrength: number | null;
+  minWifiStrength: number | null;
+  maxWifiStrength: number | null;
+  networkChanged: boolean;
+};
+
 export type SessionPreview = {
   id: string;
   fileName: string;
@@ -45,6 +59,6 @@ export type SessionPreview = {
   successCount: number;
   errorCount: number;
   avgLatencyMs: number;
+  networkSummary: SessionNetworkSummary | null;
   status: 'ready' | 'incomplete';
 };
-

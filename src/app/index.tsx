@@ -13,6 +13,7 @@ import { Button, ButtonText } from '@/components/ui/button';
 import { HStack } from '@/components/ui/hstack';
 import { Input, InputField } from '@/components/ui/input';
 import { ScrollView } from '@/components/ui/scroll-view';
+import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import { Toast, ToastTitle, useToast } from '@/components/ui/toast';
 import { VStack } from '@/components/ui/vstack';
@@ -22,16 +23,24 @@ import { useSessionStore } from '@/store/session';
 export default function SessionScreen() {
   const urlInput = useSessionStore((s) => s.urlInput);
   const intervalInput = useSessionStore((s) => s.intervalInput);
+  const includeNetworkStatus = useSessionStore((s) => s.includeNetworkStatus);
   const isBusy = useSessionStore((s) => s.isBusy);
   const isRunning = useSessionStore((s) => s.isRunning);
   const requestCount = useSessionStore((s) => s.requestCount);
   const errorCount = useSessionStore((s) => s.errorCount);
   const averageLatencyMs = useSessionStore((s) => s.averageLatencyMs);
   const errorMessage = useSessionStore((s) => s.errorMessage);
+  const canOpenNotificationSettings = useSessionStore(
+    (s) => s.canOpenNotificationSettings,
+  );
   const infoMessage = useSessionStore((s) => s.infoMessage);
   const sessionSavedAt = useSessionStore((s) => s.sessionSavedAt);
   const setUrlInput = useSessionStore((s) => s.setUrlInput);
   const setIntervalInput = useSessionStore((s) => s.setIntervalInput);
+  const setIncludeNetworkStatus = useSessionStore((s) => s.setIncludeNetworkStatus);
+  const openNotificationSettings = useSessionStore(
+    (s) => s.openNotificationSettings,
+  );
   const startSession = useSessionStore((s) => s.startSession);
   const stopSession = useSessionStore((s) => s.stopSession);
 
@@ -105,9 +114,23 @@ export default function SessionScreen() {
 
           <VStack space="md">
             {errorMessage ? (
-              <Alert variant="destructive" className="rounded-md">
-                <AlertText className="text-destructive">{errorMessage}</AlertText>
-              </Alert>
+              <VStack space="sm">
+                <Alert variant="destructive" className="rounded-md">
+                  <AlertText className="text-destructive">{errorMessage}</AlertText>
+                </Alert>
+                {canOpenNotificationSettings ? (
+                  <Button
+                    variant="outline"
+                    onPress={openNotificationSettings}
+                    accessibilityLabel="Open notification settings"
+                    className="border-destructive/40"
+                  >
+                    <ButtonText className="text-destructive">
+                      Open notification settings
+                    </ButtonText>
+                  </Button>
+                ) : null}
+              </VStack>
             ) : null}
 
             <HStack space="sm" className="items-center">
@@ -145,28 +168,46 @@ export default function SessionScreen() {
             >
               <AccordionItem value="advanced">
                 <AccordionContent className="pb-0">
-                  <HStack space="sm" className="items-center">
-                    <Text className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground w-24">
-                      Interval ms
-                    </Text>
-                    <Box className="flex-1">
-                      <Input className="min-h-12 rounded-md border-border bg-card mb-3">
-                        <InputField
-                          keyboardType="number-pad"
-                          placeholder="1000"
-                          value={intervalInput}
-                          onChangeText={setIntervalInput}
+                  <VStack
+                    className="rounded-md border border-border bg-card/60 px-3 py-3"
+                    space="md"
+                  >
+                    <HStack space="sm" className="items-center">
+                      <Text className="w-24 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                        Interval ms
+                      </Text>
+                      <Box className="min-w-0 flex-1">
+                        <Input className="min-h-11 rounded-md border-border bg-background">
+                          <InputField
+                            keyboardType="number-pad"
+                            placeholder="1000"
+                            value={intervalInput}
+                            onChangeText={setIntervalInput}
+                          />
+                        </Input>
+                      </Box>
+                    </HStack>
+                    <HStack space="sm" className="items-center">
+                      <Text className="w-24 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                        Wi-Fi data
+                      </Text>
+                      <HStack className="min-w-0 flex-1 justify-start">
+                        <Switch
+                          value={includeNetworkStatus}
+                          onValueChange={setIncludeNetworkStatus}
+                          disabled={isRunning || isBusy}
+                          accessibilityLabel="Include Wi-Fi data"
                         />
-                      </Input>
-                    </Box>
-                  </HStack>
+                      </HStack>
+                    </HStack>
+                  </VStack>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
 
             <Button
               variant="default"
-              className="-mt-3"
+              className={advancedOpen ? '' : '-mt-3'}
               onPress={isRunning ? stopSession : startSession}
               isDisabled={isBusy}
             >

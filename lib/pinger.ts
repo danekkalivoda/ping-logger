@@ -1,3 +1,4 @@
+import type { NetworkStatusSnapshot } from '@/lib/network-status';
 import type { SessionPingLine } from '@/lib/session-types';
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -20,12 +21,14 @@ export function startPingLoop({
   onPing,
   onFatalError,
   shouldContinue,
+  captureNetworkStatus,
 }: {
   url: string;
   intervalMs: number;
   onPing: (line: SessionPingLine) => Promise<void>;
   onFatalError: (message: string) => void;
   shouldContinue: () => boolean;
+  captureNetworkStatus?: () => Promise<NetworkStatusSnapshot>;
 }) {
   let isStopped = false;
   let activeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -112,6 +115,19 @@ export function startPingLoop({
     }
 
     if (!line || isStopped || !shouldContinue()) {
+      return;
+    }
+
+    if (captureNetworkStatus) {
+      try {
+        const network = await captureNetworkStatus();
+        line = { ...line, network };
+      } catch {
+        // Network status is best-effort telemetry; ping persistence should continue.
+      }
+    }
+
+    if (isStopped || !shouldContinue()) {
       return;
     }
 

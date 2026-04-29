@@ -1,4 +1,5 @@
 import {
+  default as NetInfo,
   NetInfoStateType,
   type NetInfoCellularState,
   type NetInfoState,
@@ -32,6 +33,25 @@ export type NetworkStatusView = {
   rxLinkSpeedMbps: number | null;
   txLinkSpeedMbps: number | null;
   cellularGeneration: string | null;
+  carrier: string | null;
+};
+
+export type NetworkStatusSnapshot = {
+  type: NetworkStatusKind;
+  is_connected: boolean | null;
+  is_internet_reachable: boolean | null;
+  is_wifi_enabled: boolean | null;
+  is_connection_expensive: boolean | null;
+  ssid: string | null;
+  bssid: string | null;
+  wifi_strength: number | null;
+  ip_address: string | null;
+  subnet: string | null;
+  frequency_mhz: number | null;
+  link_speed_mbps: number | null;
+  rx_link_speed_mbps: number | null;
+  tx_link_speed_mbps: number | null;
+  cellular_generation: string | null;
   carrier: string | null;
 };
 
@@ -146,6 +166,34 @@ export function normalizeNetworkStatus(state: NetInfoState): NetworkStatusView {
         subtitle: 'Network state pending',
       };
   }
+}
+
+export async function captureNetworkStatusSnapshot() {
+  const state = await NetInfo.refresh();
+  return toNetworkStatusSnapshot(normalizeNetworkStatus(state));
+}
+
+export function toNetworkStatusSnapshot(
+  status: NetworkStatusView,
+): NetworkStatusSnapshot {
+  return {
+    type: status.kind,
+    is_connected: status.isConnected,
+    is_internet_reachable: status.isInternetReachable,
+    is_wifi_enabled: status.isWifiEnabled,
+    is_connection_expensive: status.isConnectionExpensive,
+    ssid: status.ssid,
+    bssid: status.bssid,
+    wifi_strength: status.wifiStrength,
+    ip_address: status.ipAddress,
+    subnet: status.subnet,
+    frequency_mhz: status.frequencyMhz,
+    link_speed_mbps: status.linkSpeedMbps,
+    rx_link_speed_mbps: status.rxLinkSpeedMbps,
+    tx_link_speed_mbps: status.txLinkSpeedMbps,
+    cellular_generation: status.cellularGeneration,
+    carrier: status.carrier,
+  };
 }
 
 export function formatReachability(value: boolean | null) {

@@ -2,11 +2,14 @@ import { create } from 'zustand';
 
 import {
   ensureForegroundServicePermissions,
+  NotificationPermissionError,
+  openPingNotificationSettings,
   setStopRequestHandler,
   showPingNotification,
   stopPingNotification,
 } from '@/lib/notifications';
 import { startPingLoop } from '@/lib/pinger';
+import { captureNetworkStatusSnapshot } from '@/lib/network-status';
 import {
   appendPingLine,
   finalizeIncompleteSessions,
@@ -45,6 +48,7 @@ type SessionState = {
   sessionId: string | null;
   urlInput: string;
   intervalInput: string;
+  includeNetworkStatus: boolean;
   showAdvanced: boolean;
   isBusy: boolean;
   isRunning: boolean;
@@ -56,10 +60,13 @@ type SessionState = {
   sessionStoragePath: string | null;
   logLines: string[];
   errorMessage: string | null;
+  canOpenNotificationSettings: boolean;
   infoMessage: string | null;
   sessionSavedAt: number | null;
   setUrlInput: (value: string) => void;
   setIntervalInput: (value: string) => void;
+  setIncludeNetworkStatus: (value: boolean) => void;
+  openNotificationSettings: () => Promise<void>;
   toggleAdvanced: () => void;
   bootstrap: () => Promise<void>;
   startSession: () => Promise<void>;
@@ -93,6 +100,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
         isBusy: false,
         isRunning: false,
         logLines: rollLogLines([...current.logLines, result.serializedFooter]),
+        canOpenNotificationSettings: false,
         errorMessage:
           reason === 'fatal'
             ? 'The ping loop stopped unexpectedly. The session was saved.'
@@ -118,6 +126,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
     sessionId: null,
     urlInput: 'https://www.lekarna.cz',
     intervalInput: '1000',
+    includeNetworkStatus: true,
     showAdvanced: false,
     isBusy: false,
     isRunning: false,
@@ -129,12 +138,48 @@ export const useSessionStore = create<SessionState>((set, get) => {
     sessionStoragePath: null,
     logLines: IDLE_LOG_LINES,
     errorMessage: null,
+    canOpenNotificationSettings: false,
     infoMessage: null,
     sessionSavedAt: null,
     setUrlInput: (value) =>
-      set({ urlInput: value, errorMessage: null, infoMessage: null }),
+      set({
+        urlInput: value,
+        errorMessage: null,
+        canOpenNotificationSettings: false,
+        infoMessage: null,
+      }),
     setIntervalInput: (value) =>
-      set({ intervalInput: value, errorMessage: null, infoMessage: null }),
+      set({
+        intervalInput: value,
+        errorMessage: null,
+        canOpenNotificationSettings: false,
+        infoMessage: null,
+      }),
+    setIncludeNetworkStatus: (value) =>
+      set((state) =>
+        state.isRunning
+          ? state
+          : {
+              includeNetworkStatus: value,
+              errorMessage: null,
+              canOpenNotificationSettings: false,
+              infoMessage: null,
+            },
+      ),
+    openNotificationSettings: async () => {
+      try {
+        await openPingNotificationSettings();
+      } catch (error) {
+        set({
+          errorMessage:
+            error instanceof Error
+              ? `Failed to open notification settings: ${error.message}`
+              : 'Failed to open notification settings.',
+          canOpenNotificationSettings: false,
+          infoMessage: null,
+        });
+      }
+    },
     toggleAdvanced: () => set((state) => ({ showAdvanced: !state.showAdvanced })),
     bootstrap: async () => {
       if (didBootstrap) {
@@ -166,11 +211,21 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
       const validation = validatePingInputs(state.urlInput, state.intervalInput);
       if (!validation.ok) {
-        set({ errorMessage: validation.error, infoMessage: null });
+        set({
+          errorMessage: validation.error,
+          canOpenNotificationSettings: false,
+          infoMessage: null,
+        });
         return;
       }
+      const includeNetworkStatus = state.includeNetworkStatus;
 
-      set({ isBusy: true, errorMessage: null, infoMessage: null });
+      set({
+        isBusy: true,
+        errorMessage: null,
+        canOpenNotificationSettings: false,
+        infoMessage: null,
+      });
 
       let createdSession:
         | Awaited<ReturnType<typeof startSessionLifecycle>>
@@ -182,6 +237,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
         createdSession = await startSessionLifecycle({
           url: validation.value.normalizedUrl,
           intervalMs: validation.value.intervalMs,
+          includeNetworkStatus,
         });
 
         setStopRequestHandler(() => {
@@ -209,6 +265,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
           sessionFileUri: createdSession.fileUri,
           sessionStoragePath: createdSession.storagePath,
           logLines: [createdSession.serializedHeader],
+          canOpenNotificationSettings: false,
         });
 
         const pingerFileUri = createdSession.fileUri;
@@ -249,6 +306,9 @@ export const useSessionStore = create<SessionState>((set, get) => {
           onFatalError: () => {
             void finalizeCurrentSession('fatal');
           },
+          captureNetworkStatus: includeNetworkStatus
+            ? captureNetworkStatusSnapshot
+            : undefined,
         });
 
         clearNotificationTimer();
@@ -311,6 +371,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
             error instanceof Error
               ? error.message
               : 'Failed to start the ping session.',
+          canOpenNotificationSettings: error instanceof NotificationPermissionError,
           infoMessage: null,
         });
       }

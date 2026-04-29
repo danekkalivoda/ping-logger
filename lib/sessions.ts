@@ -6,6 +6,7 @@ import type {
   SessionFileLine,
   SessionFooterLine,
   SessionHeaderLine,
+  SessionNetworkSummary,
   SessionPingLine,
   SessionPreview,
 } from '@/lib/session-types';
@@ -89,6 +90,50 @@ function averageLatency(pings: SessionPingLine[]) {
   return Math.round(total / pings.length);
 }
 
+function summarizeNetworkStatus(pings: SessionPingLine[]): SessionNetworkSummary | null {
+  const samples = pings
+    .map((ping) => ping.network)
+    .filter((sample): sample is NonNullable<SessionPingLine['network']> =>
+      sample !== undefined,
+    );
+
+  if (samples.length === 0) {
+    return null;
+  }
+
+  const wifiStrengths = samples
+    .map((sample) => sample.wifi_strength)
+    .filter((value): value is number => typeof value === 'number');
+  const lastSsid =
+    [...samples].reverse().find((sample) => sample.ssid !== null)?.ssid ?? null;
+  const lastNetworkType = samples.at(-1)?.type ?? null;
+  const lastWifiStrength =
+    [...samples].reverse().find((sample) => sample.wifi_strength !== null)
+      ?.wifi_strength ?? null;
+  const networkSignatures = new Set(
+    samples.map((sample) =>
+      [
+        sample.type,
+        sample.ssid ?? '',
+        sample.bssid ?? '',
+        sample.carrier ?? '',
+      ].join('|'),
+    ),
+  );
+
+  return {
+    sampleCount: samples.length,
+    lastNetworkType,
+    lastSsid,
+    lastWifiStrength,
+    minWifiStrength:
+      wifiStrengths.length > 0 ? Math.min(...wifiStrengths) : null,
+    maxWifiStrength:
+      wifiStrengths.length > 0 ? Math.max(...wifiStrengths) : null,
+    networkChanged: networkSignatures.size > 1,
+  };
+}
+
 function inferDurationSeconds(
   startedAt: string,
   footer: SessionFooterLine | null,
@@ -140,6 +185,7 @@ function summarizeSessionText(
     footer?.success ?? pings.filter((ping) => ping.status >= 200 && ping.status < 400).length;
   const errorCount = footer?.error ?? Math.max(0, totalRequests - successCount);
   const avgLatencyMs = footer?.avg_latency_ms ?? averageLatency(pings);
+  const networkSummary = summarizeNetworkStatus(pings);
 
   return {
     id: fileName.replace(/\.jsonl$/, ''),
@@ -155,6 +201,7 @@ function summarizeSessionText(
     successCount,
     errorCount,
     avgLatencyMs,
+    networkSummary,
     status: footer ? 'ready' : 'incomplete',
   } satisfies SessionPreview;
 }
@@ -162,9 +209,11 @@ function summarizeSessionText(
 export async function startSessionLifecycle({
   url,
   intervalMs,
+  includeNetworkStatus,
 }: {
   url: string;
   intervalMs: number;
+  includeNetworkStatus: boolean;
 }) {
   const startedAt = new Date();
   const fileName = `session-${formatFileTimestamp(startedAt)}.jsonl`;
@@ -174,6 +223,7 @@ export async function startSessionLifecycle({
     url,
     start: startedAt.toISOString(),
     interval_ms: intervalMs,
+    include_network_status: includeNetworkStatus,
     device: Device.modelName ?? 'Unknown device',
     app_version: Constants.expoConfig?.version ?? 'unknown',
   };

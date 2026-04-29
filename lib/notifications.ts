@@ -6,7 +6,7 @@ import notifee, {
   EventType,
   type Event,
 } from '@notifee/react-native';
-import { Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
 
 const CHANNEL_ID = 'ping_session';
 const NOTIFICATION_ID = 'ping_session_active';
@@ -23,6 +23,13 @@ export type PingNotificationState = {
 let didRegisterRuntime = false;
 let stopRequestHandler: (() => void) | null = null;
 let foregroundServiceResolver: (() => void) | null = null;
+
+export class NotificationPermissionError extends Error {
+  constructor() {
+    super('Notification permission is required to run the ping session.');
+    this.name = 'NotificationPermissionError';
+  }
+}
 
 function getHostLabel(url: string) {
   try {
@@ -71,20 +78,65 @@ async function ensureChannel() {
   });
 }
 
+function isNotificationAuthorized(status: AuthorizationStatus) {
+  return status > AuthorizationStatus.DENIED;
+}
+
+function isAndroid13OrNewer() {
+  const version =
+    typeof Platform.Version === 'number'
+      ? Platform.Version
+      : Number.parseInt(Platform.Version, 10);
+  return Number.isFinite(version) && version >= 33;
+}
+
+async function requestAndroidPostNotificationsPermission() {
+  if (Platform.OS !== 'android' || !isAndroid13OrNewer()) {
+    return;
+  }
+
+  const permission = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
+  const alreadyGranted = await PermissionsAndroid.check(permission);
+  if (alreadyGranted) {
+    return;
+  }
+
+  const result = await PermissionsAndroid.request(permission);
+  if (result !== PermissionsAndroid.RESULTS.GRANTED) {
+    throw new NotificationPermissionError();
+  }
+}
+
 export async function ensureForegroundServicePermissions() {
   if (Platform.OS !== 'android') {
     return;
   }
 
   const current = await notifee.getNotificationSettings();
-  if (current.authorizationStatus === AuthorizationStatus.AUTHORIZED) {
+  if (isNotificationAuthorized(current.authorizationStatus)) {
     return;
   }
 
+  await requestAndroidPostNotificationsPermission();
+
   const next = await notifee.requestPermission();
-  if (next.authorizationStatus !== AuthorizationStatus.AUTHORIZED) {
-    throw new Error('Notification permission is required to run the ping session.');
+  if (!isNotificationAuthorized(next.authorizationStatus)) {
+    throw new NotificationPermissionError();
   }
+}
+
+export async function openPingNotificationSettings() {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+
+  try {
+    await ensureChannel();
+  } catch {
+    // Settings can still open at app level if channel creation is unavailable.
+  }
+
+  await notifee.openNotificationSettings(CHANNEL_ID);
 }
 
 export async function showPingNotification(state: PingNotificationState) {

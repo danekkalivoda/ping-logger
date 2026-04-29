@@ -53,6 +53,49 @@ function czechDateTime(iso: string) {
   return `${d.getDate()}. ${d.getMonth() + 1}. ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+type NetworkSummary = NonNullable<SessionPreview['networkSummary']>;
+
+function formatNetworkType(type: NetworkSummary['lastNetworkType']) {
+  switch (type) {
+    case 'wifi':
+      return 'Wi-Fi';
+    case 'cellular':
+      return 'Cellular';
+    case 'ethernet':
+      return 'Ethernet';
+    case 'vpn':
+      return 'VPN';
+    case 'offline':
+      return 'Offline';
+    case 'other':
+      return 'Other';
+    case 'unknown':
+    default:
+      return 'Unknown';
+  }
+}
+
+function formatNetworkIdentity(summary: NetworkSummary) {
+  const type = formatNetworkType(summary.lastNetworkType);
+  return summary.lastSsid ? `${type} · ${summary.lastSsid}` : type;
+}
+
+function formatNetworkSignal(summary: NetworkSummary) {
+  if (summary.lastWifiStrength === null) {
+    return 'N/A';
+  }
+
+  if (
+    summary.minWifiStrength !== null &&
+    summary.maxWifiStrength !== null &&
+    summary.minWifiStrength !== summary.maxWifiStrength
+  ) {
+    return `${summary.lastWifiStrength}% (${summary.minWifiStrength}-${summary.maxWifiStrength}%)`;
+  }
+
+  return `${summary.lastWifiStrength}%`;
+}
+
 export default function SessionsScreen() {
   const [sessions, setSessions] = useState<SessionPreview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -336,6 +379,26 @@ export default function SessionsScreen() {
                           value={`${session.avgLatencyMs}ms`}
                         />
                         <DetailTile label="Errors" value={String(session.errorCount)} />
+                        {session.networkSummary ? (
+                          <>
+                            <DetailTile
+                              label="Network"
+                              value={formatNetworkIdentity(session.networkSummary)}
+                            />
+                            <DetailTile
+                              label="Signal"
+                              value={formatNetworkSignal(session.networkSummary)}
+                            />
+                            <DetailTile
+                              label="Changes"
+                              value={
+                                session.networkSummary.networkChanged
+                                  ? 'Changed'
+                                  : 'Stable'
+                              }
+                            />
+                          </>
+                        ) : null}
                       </HStack>
                       <Button
                         variant="outline"
